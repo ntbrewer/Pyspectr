@@ -14,6 +14,7 @@ import numpy
 import sys
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import re
 
 from collections import deque
 
@@ -565,10 +566,28 @@ class Experiment:
 
     def list(self, his_id=None):
         """List all histograms in the active data file
-           or details on a selected histogram"""
+           or details on a selected histogram. Now accepts '1d','1D','2d',
+           or '2D' as input for listing all 1 or 2 dimensional histograms. 
+           Now also implements re to query the list (case insensitive)"""
         if his_id is None:
             for key in sorted(self.hisfile.histograms.keys()):
                 print('{: <6} {}'.format(key, 
+                                    self.hisfile.histograms[key]['title']))
+        elif isinstance(his_id, str):
+            if his_id is '1d' or his_id is'1D':
+               for key in sorted(self.hisfile.histograms.keys()):
+                   if self.hisfile.histograms[key]['dimension']==1:
+                       print('{: <6} {}'.format(key, 
+                                    self.hisfile.histograms[key]['title']))
+            elif his_id is '2d' or his_id is'2D':
+               for key in sorted(self.hisfile.histograms.keys()):
+                   if self.hisfile.histograms[key]['dimension']==2:
+                       print('{: <6} {}'.format(key, 
+                                    self.hisfile.histograms[key]['title']))
+            else:
+               for key in sorted(self.hisfile.histograms.keys()):
+                   if re.search(his_id,self.hisfile.histograms[key]['title'],re.I)!=None:
+                      print('{: <6} {}'.format(key, 
                                     self.hisfile.histograms[key]['title']))
         else:
             try:
@@ -588,7 +607,8 @@ class Experiment:
                                                       xmin[1], xmax[1]))
             except KeyError:
                 print('Histogram id = {} not found'.format(his_id))
-
+    def search(self, his_id=None):
+        """keyword look-up of histogram numbers"""
 
     def _standard_errors_array(self, data):
         """ Calculate standard error array (\sigma_i = \sqrt{n_i}),
