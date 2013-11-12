@@ -607,8 +607,6 @@ class Experiment:
                                                       xmin[1], xmax[1]))
             except KeyError:
                 print('Histogram id = {} not found'.format(his_id))
-    def search(self, his_id=None):
-        """keyword look-up of histogram numbers"""
 
     def _standard_errors_array(self, data):
         """ Calculate standard error array (\sigma_i = \sqrt{n_i}),
