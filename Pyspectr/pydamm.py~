@@ -14,6 +14,7 @@ import numpy
 import sys
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import re
 
 from collections import deque
 
@@ -565,10 +566,28 @@ class Experiment:
 
     def list(self, his_id=None):
         """List all histograms in the active data file
-           or details on a selected histogram"""
+           or details on a selected histogram. Now accepts '1d','1D','2d',
+           or '2D' as input for listing all 1 or 2 dimensional histograms. 
+           Now also implements re to query the list (case insensitive)"""
         if his_id is None:
             for key in sorted(self.hisfile.histograms.keys()):
                 print('{: <6} {}'.format(key, 
+                                    self.hisfile.histograms[key]['title']))
+        elif isinstance(his_id, str):
+            if his_id is '1d' or his_id is'1D':
+               for key in sorted(self.hisfile.histograms.keys()):
+                   if self.hisfile.histograms[key]['dimension']==1:
+                       print('{: <6} {}'.format(key, 
+                                    self.hisfile.histograms[key]['title']))
+            elif his_id is '2d' or his_id is'2D':
+               for key in sorted(self.hisfile.histograms.keys()):
+                   if self.hisfile.histograms[key]['dimension']==2:
+                       print('{: <6} {}'.format(key, 
+                                    self.hisfile.histograms[key]['title']))
+            else:
+               for key in sorted(self.hisfile.histograms.keys()):
+                   if re.search(his_id,self.hisfile.histograms[key]['title'],re.I)!=None:
+                      print('{: <6} {}'.format(key, 
                                     self.hisfile.histograms[key]['title']))
         else:
             try:
@@ -588,7 +607,6 @@ class Experiment:
                                                       xmin[1], xmax[1]))
             except KeyError:
                 print('Histogram id = {} not found'.format(his_id))
-
 
     def _standard_errors_array(self, data):
         """ Calculate standard error array (\sigma_i = \sqrt{n_i}),
@@ -869,7 +887,7 @@ class Experiment:
 
         xc is x range, yc is y range, that may be applied immediately, 
         see also xc() and yc() functions
-        
+
         """
         self.mode = 2
 
@@ -1013,8 +1031,14 @@ class Experiment:
                 peaks.append(p)
 
         PF = PeakFitter(peaks, 'linear', '')
+        x_axis=0
+        weights=0
 
         if his is not None:
+            if hasattr(his,'histogram'):
+                x_axis = his.histogram.x_axis
+                weights = his.histogram.weights
+                title = his.histogram.title
             if isinstance(his, int):
                 if his > 0:
                     data = self.hisfile.load_histogram(his)
@@ -1024,8 +1048,7 @@ class Experiment:
                     x_axis = data[1]
                     weights = data[3]
                     title = self.hisfile.histograms[his]['title'].strip()
-                    title = '{}:{}'.format(his,
-                                           self._replace_latex_chars(title))
+                    title = '{}:{}'.format(his, self._replace_latex_chars(title))
                 else:
                     try:
                         x_axis = Experiment.plots[his].histogram.x_axis
@@ -1227,13 +1250,11 @@ class Experiment:
                 else:
                    self.plotter.plot2d(args[n])
         plt.tight_layout()
- ##                   plt.xlim([e.histogram.weights.nonzero()[0][0]-2,e.histogram.weights.nonzero()[0][-1]+10])
-##plt.xlim(e.histogram.x_axis)
-##fig.add_subplot(i,j,i+numx*(j-1)))    
+
 
     def rebin(self,hisd):
         """
-        Rebin the last 1 or 2d histogram as specified by hisd
+        Rebin the last 1 or 2d histogram as specified by hisd. Can be used after a "zoom" or "pan" in the canvas. TBD automated rebinning for faster displaying.
         """
         tup = (plt.xlim(),plt.ylim())
         if hisd==1:

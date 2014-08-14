@@ -887,7 +887,7 @@ class Experiment:
 
         xc is x range, yc is y range, that may be applied immediately, 
         see also xc() and yc() functions
-        
+
         """
         self.mode = 2
 
@@ -1032,7 +1032,12 @@ class Experiment:
 
         PF = PeakFitter(peaks, 'linear', '')
 
+
         if his is not None:
+            if hasattr(his,'histogram'):
+                x_axis = his.histogram.x_axis
+                weights = his.histogram.weights
+                title = his.histogram.title
             if isinstance(his, int):
                 if his > 0:
                     data = self.hisfile.load_histogram(his)
@@ -1042,8 +1047,7 @@ class Experiment:
                     x_axis = data[1]
                     weights = data[3]
                     title = self.hisfile.histograms[his]['title'].strip()
-                    title = '{}:{}'.format(his,
-                                           self._replace_latex_chars(title))
+                    title = '{}:{}'.format(his, self._replace_latex_chars(title))
                 else:
                     try:
                         x_axis = Experiment.plots[his].histogram.x_axis
