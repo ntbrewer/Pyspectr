@@ -1067,7 +1067,7 @@ class Experiment:
             title = Experiment.plots[-1].histogram.title
             
         dweights = self._standard_errors_array(weights)
-
+        
         if clear:
             self.clear()
 
@@ -1128,8 +1128,15 @@ class Experiment:
             dA = PF.params['A{}'.format(i)].stderr
             s = PF.params['s{}'.format(i)].value
             Area = PF.find_area(x_axis, i)
-            print('{:>8} {:>8.2f} {:>8.2f} {:>8.1f} {:>8.1f} {:>8.3f} {:>8.1f}'
-                    .format(peaks[i].get('E'), x0, dx, A, dA, s, Area))
+            #.format functions differently for 3.4+. Now uses the object.__format__
+            #if something doesn't have its own __format__. Avoided by making string w/ !s
+            #had to remove '.(x)f' from all but first placeholder where (x)=decimal places
+            #dvm 2018-05-09
+            # to achieve the decimal formatting, currently using round(). Needs revisited
+            # to evaluate accuracy of doing this to floats.
+            print('{!s:>8} {!s:>8} {!s:>8} {!s:>8} {!s:>8} {!s:>8} {!s:>8}'
+                    .format(peaks[i].get('E'), round(x0,2), round(dx,2), round(A,2)
+                            , round(dA,2), round(s,2), round(Area,2)))
             peak_data.append([peaks[i].get('E'), x0, dx, A, dA, s, Area])
         return peak_data
 

@@ -160,17 +160,26 @@ class PeakFitter:
 
         """
         self._initialize(data_x, data_y)
+
+        #lmfit no longer alters the params directly. Instead, it makes a copy
+        # and reports those. Historical code used self.params, now uses result.params
+        # dvm 2018-05-10
         result = minimize(self.residual, self.params, 
                           args=(data_x, data_y, data_dy))
-
+        
         x = numpy.linspace(data_x[0], data_x[-1], 1000)
-        y0 = self.fit_func(self.params, x)
-
+        #y0 = self.fit_func(self.params, x)
+        y0 = self.fit_func(result.params, x)
+        
         if self.baseline == 'linear':
-            yb = self._linear(self.params, data_x)
+            #yb = self._linear(self.params, data_x)
+            yb = self._linear(result.params, data_x)
         elif self.baseline == 'quadratic':
-            yb = self._quadratic(self.params, data_x)
+            #yb = self._quadratic(self.params, data_x)
+            yb = self._quadratic(result.params, data_x)
 
+        self.params = result.params
+            
         functions = {'x_axis' : x, 'baseline': yb, 'fit': y0}
 
         return functions
