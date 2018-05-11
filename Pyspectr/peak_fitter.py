@@ -168,14 +168,11 @@ class PeakFitter:
                           args=(data_x, data_y, data_dy))
         
         x = numpy.linspace(data_x[0], data_x[-1], 1000)
-        #y0 = self.fit_func(self.params, x)
         y0 = self.fit_func(result.params, x)
         
         if self.baseline == 'linear':
-            #yb = self._linear(self.params, data_x)
             yb = self._linear(result.params, data_x)
         elif self.baseline == 'quadratic':
-            #yb = self._quadratic(self.params, data_x)
             yb = self._quadratic(result.params, data_x)
 
         self.params = result.params
