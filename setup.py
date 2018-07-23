@@ -2,13 +2,13 @@ from distutils.core import setup
 
 setup(
     name='Pyspectr',
-    version='0.1.0',
-    author='Krzysztof Miernik',
-    author_email='kamiernik@gmail.com',
+    version='0.2.0',
+    author='Nathan Brewer',
+    author_email='brewer.nathant@gmail.com',
     packages=['Pyspectr'],
-    url=['https://github.com/kmiernik/Pyspectr'],
+    url=['https://github.com/ntbrewer/Pyspectr'],
     scripts=['bin/py_grow_decay.py',
-             'bin/spectrum_fitter.py'],
+             'bin/spectrum_fitter.py','plotscatter.py'],
     license='LICENSE.txt',
     description='Useful spectroscopic tools',
     long_description=open('README.txt').read(),
@@ -19,5 +19,5 @@ setup(
         "Programming Language :: Python :: 3.3",
         "Topic :: Scientific/Engineering :: Physics",
     ],
-    requires=['matplotlib', 'numpy', 'lmfit'],
+    requires=['matplotlib', 'numpy', 'lmfit' , 'math' , 'sys' , 're' , 'tarfile' , 'struct' , 'os' , 'time'],
 )
