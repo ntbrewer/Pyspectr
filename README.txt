@@ -32,7 +32,15 @@ the building and installation procedure (it is very simple). The lmfit library
 on the github includes the standard pythons distutils setup script and is also
 very easy to install.
 
-Ones the required libraries are in place, install the Pyspectr with:
+!!!
+Now on Pypi.org
+!!!
+All you need now is:
+$ pip3 install Pyspectr
+and you should be good to go. 
+
+or via:
+Once the required libraries are in place, install the Pyspectr with:
     python3 setup.py build
     sudo python3 setup.py install
 
