@@ -8,7 +8,7 @@ Distributed under GNU General Public Licence v3
 """
 
 import math
-import numpy
+import numpy as np
 import os
 import sys
 import time
@@ -50,7 +50,7 @@ class PeakFitter:
         mu = params['x{}'.format(peak_index)].value
         A = params['A{}'.format(peak_index)].value
         return ( A / (math.sqrt(2 * math.pi) * s) *
-                numpy.exp(-0.5 * ((data_x - mu) * (data_x - mu))
+                np.exp(-0.5 * ((data_x - mu) * (data_x - mu))
                                 / math.pow(s, 2)) )
 
     def _gauss_lskew(self, params, data_x, peak_index):
@@ -69,7 +69,7 @@ class PeakFitter:
                 d = 2 * math.pow(s, 2) 
             y.append(A / (math.sqrt(2 * math.pi) * s) *
                     math.exp(-0.5 * math.pow(x - mu, 2) / d) )
-        return numpy.array(y)
+        return np.array(y)
 
 
     def _linear(self, params, data_x):
@@ -97,7 +97,7 @@ class PeakFitter:
         baseline
 
         """
-        y = numpy.zeros((len(data_x)))
+        y = np.zeros((len(data_x)))
         if self.baseline == 'linear':
             y += self._linear(params, data_x)
         elif self.baseline == 'quadratic':
@@ -126,7 +126,7 @@ class PeakFitter:
         elif self.peaks[peak_index].get('model') == 'gauss_l':
             yp = self._gauss_lskew(self.params, data_x, peak_index)
 
-        return(numpy.sum(yp))
+        return(np.sum(yp))
 
 
     def _initialize(self, data_x, data_y):
@@ -144,10 +144,10 @@ class PeakFitter:
                 self.params['sL{}'.format(i)].min = 0.0
                 self.params['sL{}'.format(i)].max = 2.0
 
-        x0 = numpy.average(data_x[0:5])
-        y0 = numpy.average(data_y[0:5])
-        x1 = numpy.average(data_x[-6:-1])
-        y1 = numpy.average(data_y[-6:-1])
+        x0 = np.average(data_x[0:5])
+        y0 = np.average(data_y[0:5])
+        x1 = np.average(data_x[-6:-1])
+        y1 = np.average(data_y[-6:-1])
         self.params['a1'].value = (y1 - y0) / (x1 - x0)
         self.params['a0'].value = y0 - x0 * self.params['a1'].value
 
@@ -167,7 +167,7 @@ class PeakFitter:
         result = minimize(self.residual, self.params, 
                           args=(data_x, data_y, data_dy))
         
-        x = numpy.linspace(data_x[0], data_x[-1], 1000)
+        x = np.linspace(data_x[0], data_x[-1], 1000)
         y0 = self.fit_func(result.params, x)
         
         if self.baseline == 'linear':

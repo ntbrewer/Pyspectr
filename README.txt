@@ -49,9 +49,21 @@ Usage
 
 pydamm
 ------
+Important note for use with ipython3! 
+in order to have the correct interactivity functionality begin the ipython session with 
+the magic command %matplotlib.
+ 
+In [1]: %matplotlib
+
+and/or use the startup script 00-pyspectr.py in the directory
+~/.ipython/profile_default/startup/ (Linux) 
+or similar for other distros. This magic puts matplotlib interactivity in the correct shell loop. 
+See ipython documentation for further detail. 
+
 Pydamm is a DAMM-like python module, so a typical session starts with importing
 the pydamm module:
 >>> from Pyspectr.pydamm import *
+
 
 The main class for the data analysis is the Experiment, it requires a file
 name (.his) to be given in the constructor:
@@ -89,5 +101,11 @@ This script fits the grow-in/decay pattern, typical in the experiments with the
 Moving Tape Collector. Available models include 1st and 2nd isotope in the
 chain, isomeric decay, diffusion corrected decay and more. See
 grow_decay_example.xml for XML config file structure.
+
+
+00-pyspectr.py
+--------------
+
+This script is placed in the startup directory for proper functionality of Pyspectr/matplotlib interactivity.
 
 

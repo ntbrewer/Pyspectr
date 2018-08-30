@@ -7,7 +7,7 @@ def plotscatter(plotobj):
     x=arr[0]
     cc = plotobj.histogram.weights[x,y]
 
-    plt.scatter(x,y,s=100, c=cc)
+    plt.scatter(x,y,s=50, c=cc)
     plt.legend()
     plt.show()
 

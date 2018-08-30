@@ -10,7 +10,7 @@ This module provides class to fit grow-in/decay functions
 
 
 import math
-import numpy
+import numpy as np
 from lmfit import minimize, Parameters, report_errors
 
 class DecayFitter:
@@ -36,12 +36,12 @@ class DecayFitter:
         y = []
         for t in data_x:
             if T0 < t < T1:
-                y.append(P1 * (1 - numpy.exp(-t / t1)))
+                y.append(P1 * (1 - np.exp(-t / t1)))
             elif T1 <= t < T2:
-                y.append(P1 * (numpy.exp(T1 / t1) - 1) * numpy.exp(-t / t1))
+                y.append(P1 * (np.exp(T1 / t1) - 1) * np.exp(-t / t1))
             else:
                 y.append(0)
-        return numpy.array(y)
+        return np.array(y)
 
 
     def grow_decay_flash(self, params, data_x):
@@ -56,15 +56,15 @@ class DecayFitter:
         y = []
         for t in data_x:
             if T0 < t < T1:
-                y.append(F * numpy.exp(-t / t1) + 
-                        P1 * (1 - numpy.exp(-t / t1)) + y0)
+                y.append(F * np.exp(-t / t1) + 
+                        P1 * (1 - np.exp(-t / t1)) + y0)
             elif T1 <= t < T2:
-                y.append(F * numpy.exp(-T1 / t1) + 
-                        P1 * (1 - numpy.exp(-T1 / t1)) *
-                        numpy.exp(-(t - T1) / t1) + y0)
+                y.append(F * np.exp(-T1 / t1) + 
+                        P1 * (1 - np.exp(-T1 / t1)) *
+                        np.exp(-(t - T1) / t1) + y0)
             else:
                 y.append(0)
-        return numpy.array(y)
+        return np.array(y)
 
 
     def grow_decay_offset(self, params, data_x):
@@ -77,12 +77,12 @@ class DecayFitter:
         y = []
         for t in data_x:
             if T0 < t < T1:
-                y.append(P1 * (1 - numpy.exp(-(t - TOFF) / t1)))
+                y.append(P1 * (1 - np.exp(-(t - TOFF) / t1)))
             elif T1 <= t < T2:
-                y.append(P1 * (numpy.exp(T1 / t1) - 1) * numpy.exp(-t / t1))
+                y.append(P1 * (np.exp(T1 / t1) - 1) * np.exp(-t / t1))
             else:
                 y.append(0)
-        return numpy.array(y)
+        return np.array(y)
 
 
     def decay_only(self, params, data_x):
@@ -96,10 +96,10 @@ class DecayFitter:
             if T0 > t:
                 y.append(0)
             elif T0 <= t < T2:
-                y.append(P1 * (numpy.exp(T1 / t1) - 1) * numpy.exp(-t / t1))
+                y.append(P1 * (np.exp(T1 / t1) - 1) * np.exp(-t / t1))
             else:
                 y.append(0)
-        return numpy.array(y)
+        return np.array(y)
 
 
     def decay_only2(self, params, data_x):
@@ -118,11 +118,11 @@ class DecayFitter:
             elif T0 <= t < T2:
                 ts = t - T1
                 y.append(N1 / (t1 - t2) * 
-                        (numpy.exp(-ts / t1) - numpy.exp(-ts / t2)) +
-                        N2 / t2 * numpy.exp(-ts/ t2))
+                        (np.exp(-ts / t1) - np.exp(-ts / t2)) +
+                        N2 / t2 * np.exp(-ts/ t2))
             else:
                 y.append(0)
-        return numpy.array(y)
+        return np.array(y)
 
 
     def grow_decay2(self, params, data_x):
@@ -137,17 +137,17 @@ class DecayFitter:
         y = []
         for t in data_x:
             if T0 < t < T1:
-                y.append( (P1 + P2) * (1 - numpy.exp(-t / t2)) +
+                y.append( (P1 + P2) * (1 - np.exp(-t / t2)) +
                         P1 * t1 / (t1 - t2) *
-                        (numpy.exp(-t / t2) - numpy.exp(-t / t1)) )
+                        (np.exp(-t / t2) - np.exp(-t / t1)) )
             elif T1 <= t < T2:
                 y.append(P1 * t1 / (t1 - t2) * 
-                        (numpy.exp(T1 / t1) - 1) * numpy.exp(-t / t1) +
+                        (np.exp(T1 / t1) - 1) * np.exp(-t / t1) +
                         (P2 - P1 * t2 / (t1 - t2)) *
-                        (numpy.exp(T1 / t2) - 1) * numpy.exp(-t / t2))
+                        (np.exp(T1 / t2) - 1) * np.exp(-t / t2))
             else:
                 y.append(0)
-        return numpy.array(y)
+        return np.array(y)
 
 
     def grow_decay2_bg(self, params, data_x):
@@ -164,19 +164,19 @@ class DecayFitter:
         y = []
         for t in data_x:
             if T0 < t < T1:
-                y.append( (P1 + P2) * (1 - numpy.exp(-t / t2)) +
+                y.append( (P1 + P2) * (1 - np.exp(-t / t2)) +
                         P1 * t1 / (t1 - t2) *
-                        (numpy.exp(-t / t2) - numpy.exp(-t / t1))
+                        (np.exp(-t / t2) - np.exp(-t / t1))
                         + y0)
             elif T1 <= t < T2:
                 y.append(P1 * t1 / (t1 - t2) * 
-                        (numpy.exp(T1 / t1) - 1) * numpy.exp(-t / t1) +
+                        (np.exp(T1 / t1) - 1) * np.exp(-t / t1) +
                         (P2 - P1 * t2 / (t1 - t2)) *
-                        (numpy.exp(T1 / t2) - 1) * numpy.exp(-t / t2) 
+                        (np.exp(T1 / t2) - 1) * np.exp(-t / t2) 
                         + y0)
             else:
                 y.append(0)
-        return numpy.array(y)
+        return np.array(y)
 
 
     def grow_decay_isomer(self, params, data_x):
@@ -193,14 +193,14 @@ class DecayFitter:
         y = []
         for t in data_x:
             if T0 < t < T1:
-                y.append( P1 * (1 - numpy.exp(-t / t1)) + 
-                        P2 * (1 - numpy.exp(-t / t2)) )
+                y.append( P1 * (1 - np.exp(-t / t1)) + 
+                        P2 * (1 - np.exp(-t / t2)) )
             elif T1 <= t < T2:
-                y.append(P1 * (numpy.exp(T1 / t1) - 1) * numpy.exp(-t / t1) + 
-                        P2 * (numpy.exp(T1 / t2) - 1) * numpy.exp(-t / t2))
+                y.append(P1 * (np.exp(T1 / t1) - 1) * np.exp(-t / t1) + 
+                        P2 * (np.exp(T1 / t2) - 1) * np.exp(-t / t2))
             else:
                 y.append(0)
-        return numpy.array(y)
+        return np.array(y)
 
 
     def grow_decay_diffusion(self, params, data_x):
@@ -222,16 +222,16 @@ class DecayFitter:
         y = []
         for t in data_x:
             if T0 < t < T1:
-                y.append( P1 * (1 - numpy.exp(-t / t1)) + 
-                        P2 * (1 - numpy.exp(-t / teff)) )
+                y.append( P1 * (1 - np.exp(-t / t1)) + 
+                        P2 * (1 - np.exp(-t / teff)) )
             elif T1 <= t < T2:
-                y.append(P1 * (1 - P2) * (numpy.exp(T1 / t1) - 1) *
-                        numpy.exp(-t / t1) + 
-                        P1 * P2 * (numpy.exp(T1 / teff) - 1) * 
-                        numpy.exp(-t / teff))
+                y.append(P1 * (1 - P2) * (np.exp(T1 / t1) - 1) *
+                        np.exp(-t / t1) + 
+                        P1 * P2 * (np.exp(T1 / teff) - 1) * 
+                        np.exp(-t / teff))
             else:
                 y.append(0)
-        return numpy.array(y)
+        return np.array(y)
 
 
 
@@ -283,7 +283,7 @@ class DecayFitter:
         for key, par in result.params.items():
             print('{} {:.3f} +/- {:.3f}'.format(key, par.value, par.stderr))
         print()
-        time = numpy.arange(params['T0'].value, params['T2'].value, 
+        time = np.arange(params['T0'].value, params['T2'].value, 
                             (params['T2'].value) / 200)
         counts = self.fitfunc(result.params, time)
         return (time, counts, result.params)

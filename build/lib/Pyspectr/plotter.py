@@ -75,21 +75,17 @@ class Plotter:
         """Change X range of a current plot"""
         plt.xlim(x_range)
 
-
     def ylim(self, y_range):
         """Change Y range of a current plot"""
         plt.ylim(y_range)
-
 
     def ylog(self):
         """Change y scale to log"""
         plt.yscale('log')
 
-
     def ylin(self):
         """Change y scale to linear"""
         plt.yscale('linear')
-
 
     def plot1d(self, plot, xlim=None, ylim=None):
         """ Plot 1D histogram
@@ -125,7 +121,6 @@ class Plotter:
         if self.legend:
             plt.legend(loc=0, numpoints=1, fontsize='small')
 
-
     def plot1d_4panel(self, plot, ranges):
         """
         Special 1D histogram plot. The plot is broken into 4 panels (stacked verically)
@@ -143,7 +138,6 @@ class Plotter:
             ax.set_xlim((r, ranges[i + 1]))
         ax.set_xlabel('E (keV)')
         plt.tight_layout()
-
 
     def plot2d(self, plot, xc=None, yc=None, logz=False):
         """Plot 2D histogram 
@@ -224,7 +218,6 @@ class Plotter:
         plt.xlim(xc)
         plt.ylim(yc)
         plt.colorbar()
-
 
     def color_map(self, cmap=None):
         """

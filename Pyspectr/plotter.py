@@ -8,7 +8,7 @@ This module provides simple front-end to matplotlib
 """
 
 import math
-import numpy
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm, ticker
 
@@ -75,21 +75,17 @@ class Plotter:
         """Change X range of a current plot"""
         plt.xlim(x_range)
 
-
     def ylim(self, y_range):
         """Change Y range of a current plot"""
         plt.ylim(y_range)
-
 
     def ylog(self):
         """Change y scale to log"""
         plt.yscale('log')
 
-
     def ylin(self):
         """Change y scale to linear"""
         plt.yscale('linear')
-
 
     def plot1d(self, plot, xlim=None, ylim=None):
         """ Plot 1D histogram
@@ -125,7 +121,6 @@ class Plotter:
         if self.legend:
             plt.legend(loc=0, numpoints=1, fontsize='small')
 
-
     def plot1d_4panel(self, plot, ranges):
         """
         Special 1D histogram plot. The plot is broken into 4 panels (stacked verically)
@@ -143,7 +138,6 @@ class Plotter:
             ax.set_xlim((r, ranges[i + 1]))
         ax.set_xlabel('E (keV)')
         plt.tight_layout()
-
 
     def plot2d(self, plot, xc=None, yc=None, logz=False):
         """Plot 2D histogram 
@@ -187,44 +181,43 @@ class Plotter:
             binx = math.ceil(nx / self.max_2d_bin)
             missing = binx * self.max_2d_bin - nx
             if missing > 0:
-                addx = numpy.arange(plot.histogram.x_axis[-1] + 1, 
+                addx = np.arange(plot.histogram.x_axis[-1] + 1, 
                                     plot.histogram.x_axis[-1] + missing + 1)
-                x = numpy.concatenate((x, addx))
+                x = np.concatenate((x, addx))
                 nx = len(x)
-                z = numpy.zeros((missing, ny))
-                w = numpy.concatenate((w, z), axis=0)
-            x = numpy.reshape(x, (-1, binx))
+                z = np.zeros((missing, ny))
+                w = np.concatenate((w, z), axis=0)
+            x = np.reshape(x, (-1, binx))
             x = x.mean(axis=1)
         if ny > self.max_2d_bin:
             biny = math.ceil(ny / self.max_2d_bin)
             missing = biny * self.max_2d_bin - ny
             if missing > 0:
-                addy = numpy.arange(plot.histogram.y_axis[-1] + 1, 
+                addy = np.arange(plot.histogram.y_axis[-1] + 1, 
                                     plot.histogram.y_axis[-1] + missing + 1)
-                y = numpy.concatenate((y, addy))
-                z = numpy.zeros((nx, missing))
-                w = numpy.concatenate((w, z), axis=1)
-            y = numpy.reshape(y, (-1, biny))
+                y = np.concatenate((y, addy))
+                z = np.zeros((nx, missing))
+                w = np.concatenate((w, z), axis=1)
+            y = np.reshape(y, (-1, biny))
             y = y.mean(axis=1)
 
         nx = len(x)
         ny = len(y)
 
         if nx != initial_nx or ny != initial_ny:
-            w = numpy.reshape(w, (nx, binx, ny, biny)).mean(3).mean(1)
-        w = numpy.transpose(w)
+            w = np.reshape(w, (nx, binx, ny, biny)).mean(3).mean(1)
+        w = np.transpose(w)
 
         title = plot.histogram.title
         # If logaritmic scale is used, mask values <= 0
         if logz:
-            w = numpy.ma.masked_where(w <= 0, numpy.log10(w))
+            w = np.ma.masked_where(w <= 0, np.log10(w))
             title += ' (log10)'
         plt.title(title)
         CS = plt.pcolormesh(x, y, w, cmap=self.cmap)
         plt.xlim(xc)
         plt.ylim(yc)
         plt.colorbar()
-
 
     def color_map(self, cmap=None):
         """

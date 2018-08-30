@@ -7,7 +7,7 @@ This module handles the HIS/DRR data files.
 
 """
 
-import numpy
+import numpy as np
 import os
 import struct
 import sys
@@ -218,17 +218,17 @@ class HisFile:
             his_file.seek(offset * 2)
             data.fromfile(his_file, length)
 
-        x_axis = numpy.arange(self.histograms[his_id]['minc'][0] + self._dx,
+        x_axis = np.arange(self.histograms[his_id]['minc'][0] + self._dx,
                             self.histograms[his_id]['maxc'][0] + self._dx + 1.0)
         if self.histograms[his_id]['dimension'] == 2:
-            y_axis = numpy.arange(self.histograms[his_id]['minc'][1] + self._dx,
+            y_axis = np.arange(self.histograms[his_id]['minc'][1] + self._dx,
                             self.histograms[his_id]['maxc'][1] + self._dx + 1.0)
-            data = numpy.reshape(data, (self.histograms[his_id]['scaled'][1],
+            data = np.reshape(data, (self.histograms[his_id]['scaled'][1],
                                         self.histograms[his_id]['scaled'][0]))
-            data = numpy.transpose(data)
+            data = np.transpose(data)
 
         if self.histograms[his_id]['dimension'] == 1:
-            return [1, x_axis, None, numpy.array(data)]
+            return [1, x_axis, None, np.array(data)]
         else:
             return [2, x_axis, y_axis, data]
 

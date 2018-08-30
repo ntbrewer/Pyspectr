@@ -10,7 +10,7 @@ DAMM programm.
 """
 
 import math
-import numpy
+import numpy as np
 import sys
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
@@ -613,8 +613,8 @@ class Experiment:
            with a twist: if n_i = 0, the uncertainity is 1 (not 0)
 
         """
-        errors = numpy.zeros(data.shape)
-        for index, d in numpy.ndenumerate(data):
+        errors = np.zeros(data.shape)
+        for index, d in np.ndenumerate(data):
             if d == 0:
                 errors[index] = 1
             else:
@@ -629,8 +629,8 @@ class Experiment:
         """
         if error1.shape != error2.shape:
             raise GeneralError('Shape of array mismatches')
-        errors = numpy.zeros(error1.shape)
-        for index, d in numpy.ndenumerate(error1):
+        errors = np.zeros(error1.shape)
+        for index, d in np.ndenumerate(error1):
             errors[index] = math.sqrt(error1[index]**2 + error2[index]**2)
         return errors
 
@@ -1189,7 +1189,7 @@ class Experiment:
         gate_histo = histogram.Histogram()
         gate_histo.x_axis = xgate.histogram.x_axis
         gate_histo.weights = xgate.histogram.weights - bckg.histogram.weights
-        gate_histo.errors = numpy.sqrt(dyg**2 + dyb**2)
+        gate_histo.errors = np.sqrt(dyg**2 + dyb**2)
         gate_histo.title = '{}: gx {} bg {} bin {}'.\
                 format(his, gate[0], gate[1], t_bin)
         plot_data = Plot(gate_histo, 'errorbar', True)
@@ -1293,7 +1293,144 @@ class Experiment:
         else:
            if y1 >= args.histogram.y_axis[-1]:
               y1 = args.histogram.y_axis[-1]
-        return ((x0,x1),(y0,y1))      
+        return ((x0,x1),(y0,y1))     
+
+    def trace_explorer(self,his,start=0,finish=None):
+        """
+        Adds the ability to examine a 2D trace histogram or range of 1D histograms 
+        and use sliders to visualize the effect of a given trapezoidal filter on the traces.
+        This is most helpful when setting up a new detector or signal type. 
+        """
+
+        import matplotlib.patches as mpt
+        from matplotlib.widgets import Slider, Button, RadioButtons
+
+        fig = plt.figure()
+
+        def trap_filter(times,res,L,G):
+            """
+            Returns the trapezoidal filtered version of the input vector, res according to 
+            L (length) and G (gap) of the resultant trapezoid.
+            """
+            retvec = np.zeros(len(times))
+            zidx = times.searchsorted(0)
+            for i in range( zidx,len(times) ):
+              retvec[i]=(res[i-L+1:i]-res[i-2*L-G+1:i-L-G]).sum()
+            return(retvec)
+
+        def tau_adjust(pulse,tau):
+            """
+            Returns the Tau/Pole-Zero corrected version of the input vector, pulse according to tau.
+            """
+            from copy import deepcopy as cp
+
+            bls = cp(pulse)
+            retvec = cp(pulse)
+            bls -= pulse[:100].mean()
+            for t in range(3,len(pulse)):
+                pz = bls[:t-1].sum()
+                retvec[t] += bls[t] + pz/tau 
+            return(retvec)
+
+        def zero_crossing(trap):
+            """
+            Returns the CFD version of the input vector, trap.
+            """
+            from copy import deepcopy as cp
+
+            delay = cp(trap)
+            td = 20 #time delay 
+            cf = .8 #constant fraction
+            delay[:-td] += -cf*trap[td:] 
+            return(delay)
+
+        def update_te(val):
+            slen.val = int(slen.val)
+            length = slen.val
+            sgap.val = int(sgap.val)
+            gap = sgap.val
+            sid.val = int(sid.val)
+            trace_id = sid.val
+            tau = stau.val
+            pulse[pulse_len:] =weights[:,trace_id][:pulse_len]
+            pulse[:pulse_len] =weights[:,trace_id][2]
+            pz = tau_adjust(pulse, tau)
+            ff = trap_filter(t,pz,length,gap)
+            zc = zero_crossing(ff)
+            l.set_ydata( pulse )
+            l2.set_ydata( pz )
+            l3.set_ydata( ff )
+            l4.set_ydata( zc )
+            ax1.set_ylim(pulse.min()-margin,pulse.max()+margin)
+            ax2.set_ylim(pz.min()-margin,pz.max()+margin)
+            ax3.set_ylim(ff.min()-margin,ff.max()+margin)
+            ax4.set_ylim(zc.min()-margin,zc.max()+margin)
+            fig.canvas.draw_idle()
+    
+        #starting positions for sliders
+        l0=100
+        g0=200
+        tau=20
+        
+        histo = self.hisfile.load_histogram(his)
+        weights = histo[3]
+        dim = histo[0]
+
+        if finish==None and dim == 2:
+            finish = weights[10].nonzero()[0][-1]
+        elif finish==None:
+            finish = start + 1 
+
+        if dim == 2:
+            pulse_histo = weights[:,start]
+        else:
+            pulse_histo = weights 
+        pulse_len = pulse_histo.nonzero()[0][-1]+1
+
+        pulse = np.zeros(2*pulse_len)
+        pulse[pulse_len:] += pulse_histo[:pulse_len]
+        pulse[:pulse_len] += pulse_histo[2]
+        t = np.arange(-pulse_len,pulse_len,1)  
+
+        ax1 = plt.subplot(3,2,1)
+        ax2 = plt.subplot(3,2,2,sharex=ax1)
+        ax3 = plt.subplot(3,2,3,sharex=ax1)
+        ax4 = plt.subplot(3,2,4,sharex=ax1)
+        margin = 100
+    
+        pz = tau_adjust(pulse,tau)
+        ff = trap_filter(t,pz,l0,g0)
+        zc = zero_crossing(ff)
+    
+        l,= ax1.plot(t,pulse,lw=2,color='red')
+        ax1.legend(['Input Pulse'])
+        l2,= ax2.plot(t,pz,lw=2,color='k')
+        ax2.legend(['Pole-zero/Tau Corrected'])
+        l3,= ax3.plot(t,ff,lw=2,color='blue')
+        ax3.legend(['Trapezoidal Filter Output'])
+        l4,= ax4.plot(t,zc,lw=2,color='green')
+        ax4.legend(['CFD Output'])
+    
+        ax2.set_xlim(0,pulse_len)
+        ax1.set_ylim(pulse.min()-margin,pulse.max()+margin)
+        ax2.set_ylim(pz.min()-margin*10,pz.max()+margin*10)
+        ax3.set_ylim(ff.min()-margin*10,ff.max()+margin*10)
+        ax4.set_ylim(zc.min()-margin*10,zc.max()+margin*10)
+    
+        axlen = plt.axes([0.15,0.17, 0.65, 0.03])
+        axgap = plt.axes([0.15,0.21, 0.65, 0.03])
+        axid = plt.axes([0.15,0.13, 0.65, 0.03])
+        axtau = plt.axes([0.15,0.09, 0.65, 0.03])
+        slen = Slider(axlen, 'Length', 1, 1000.0, valinit=l0)
+        sgap = Slider(axgap, 'Gap', 1, 1000.0, valinit=g0)
+        sid = Slider(axid, 'Trace id', start, finish, valinit=start)
+        stau = Slider(axtau, 'Tau', 0, 200, valinit=tau)
+
+
+        slen.on_changed(update_te)
+        sgap.on_changed(update_te)
+        sid.on_changed(update_te)
+        stau.on_changed(update_te)
 
 if __name__ == "__main__":
     pass
