@@ -1347,11 +1347,16 @@ class Experiment:
         def update_te(val):
             slen.val = int(slen.val)
             length = slen.val
+            slen.valtext.set_text(length)
             sgap.val = int(sgap.val)
             gap = sgap.val
+            sgap.valtext.set_text(gap)
             sid.val = int(sid.val)
             trace_id = sid.val
-            tau = stau.val
+            sid.valtext.set_text(trace_id)
+            tau = 10**stau.val
+            stau.valtext.set_text(tau)
+            
             pulse[pulse_len:] =weights[:,trace_id][:pulse_len]
             pulse[:pulse_len] =weights[:,trace_id][2]
             pz = tau_adjust(pulse, tau)
@@ -1370,7 +1375,7 @@ class Experiment:
         #starting positions for sliders
         l0=100
         g0=200
-        tau=20
+        tau=1
         
         histo = self.hisfile.load_histogram(his)
         weights = histo[3]
@@ -1424,7 +1429,7 @@ class Experiment:
         slen = Slider(axlen, 'Length', 1, 1000.0, valinit=l0)
         sgap = Slider(axgap, 'Gap', 1, 1000.0, valinit=g0)
         sid = Slider(axid, 'Trace id', start, finish, valinit=start)
-        stau = Slider(axtau, 'Tau', 0, 200, valinit=tau)
+        stau = Slider(axtau, 'Tau', -1, 4, valinit=tau)
 
 
         slen.on_changed(update_te)
