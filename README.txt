@@ -36,6 +36,8 @@ very easy to install.
 Now on Pypi.org
 !!!
 All you need now is:
+$ pip3 install scipy (or only matplotlib and numpy)
+$ pip3 install lmfit
 $ pip3 install Pyspectr
 and you should be good to go. 
 
