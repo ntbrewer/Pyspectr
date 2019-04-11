@@ -55,6 +55,7 @@ class Plot:
 
         self._bin_size = 1
         self._norm = 1
+        self._norm_total = 1
 
 
     @property
@@ -92,15 +93,16 @@ class Plot:
     def norm(self, n):
         if self.histogram.dim != 1:
             raise GeneralError('Currently only 1D histograms can be normalized')
-        self.histogram = self.histogram.normalize1d(n, self.bin_size)
-
+        self.histogram, n, self.bin_size = self.histogram.normalize1d(n, self.bin_size)
+        self._norm = n
+        self._norm_total *= n
 
 
     def __str__(self):
         """Basic information Informative string"""
         string = 'Plot: {} bin {} norm {:.2e}'.\
                     format(self.histogram.title.strip(), self.bin_size,
-                           self.norm)
+                           self._norm_total)
         return string
 
 
@@ -110,7 +112,7 @@ class Plot:
         """
         string = 'Plot: "{}" bin {} norm {:.2e} active {} mode {}'.\
                     format(self.histogram.title.strip(), self.bin_size,
-                           self.norm, self.active, self.mode)
+                           self._norm_total, self.active, self.mode)
         return string
 
 
@@ -137,6 +139,8 @@ class Experiment:
     # 1D plot ranges
     xlim = None
     ylim = None
+    yscale = 'lin'
+    xscale = 'lin'
 
     # 2D plot ranges
     xlim2d = None
@@ -215,7 +219,7 @@ class Experiment:
         for p in reversed(Experiment.plots):
             print('{: >3} {: <40} {: >5} {: >5.2e} {: >5}'.\
                     format(i, p.histogram.title[:40], p.bin_size,
-                           p.norm, p.active))
+                           p._norm_total, p.active))
             i -= 1
         print()
 
@@ -228,15 +232,15 @@ class Experiment:
         for p in reversed(Experiment.maps):
             print('{: >3} {: <40} {: >5} {: >5.2e} {: >5}'.\
                     format(i, p.histogram.title[:40], p.bin_size,
-                           p.norm, p.active))
+                           p._norm_total, p.active))
             i -= 1
         print()
 
 
     def _expand_norm(self, norm, num_of_args):
-        """Return normalization array of lenght equal to 
+        """Return normalization array of length equal to 
         num_of_args, expand integers to whole array, check 
-        if list is of proper lenght
+        if list is of proper length
 
         """
         normalization = []
@@ -312,7 +316,6 @@ class Experiment:
         return None
 
 
-
     def d(self, *args, norm=1, bin_size=1, clear=True):
         """
         Plot 1D histogram. 
@@ -325,31 +328,36 @@ class Experiment:
               - string:  in 'x-y' format where x and y are integers 
                         (note also mandatory quatation marks)
                         is interpreted as a range of histograms ids
-
         * norm: may be given as a single float or int value or an 'area' string,
                 also a list of length matching the *args list may be used
                 with any combination of the above accepted values
+                if a tuple of length two is given, a (lo,hi) range interpretation is assumed.
         * bin_size: must be an integer, a list of ints is 
                     also accepted (see norm)
         * clear: is True by default, which means that previous plot is 
                  cleared if False is given, the previous plots are not cleared.
-
         Example:
         e.d(100, plot1, '105-106', -3, bin_size=[1, 2, 1, 1, 10], clear=False)
-
         """
+        #import copy
+        #cp = copy.deepcopy
         plots = []
-
+        normalization = None
         his_list = self._expand_d_args(args)
 
-        normalization = self._expand_norm(norm, len(his_list))
+        if isinstance(norm,tuple):
+            if len(norm) == 2:
+                normalization = self._expand_norm_tuple(norm, his_list)
+        else:
+            normalization = self._expand_norm(norm, len(his_list))
+        
         if normalization is None:
             return None
 
         bin_sizes = self._expand_bin_sizes(bin_size, len(his_list))
         if bin_sizes is None:
             return None
-
+        #print(normalization,his_list)
         # Clear the plotting area (of clear is False, the currently
         # active plots are not deactivated, so they got replotted at
         # the end of this function)
@@ -364,6 +372,7 @@ class Experiment:
 
         # Prepare data for plotting
         for i_plot, his in enumerate(his_list):
+            #his = cp(hist)
             if isinstance(his, int):
                 # load histograms from the file
                 if his > 0:
@@ -381,7 +390,9 @@ class Experiment:
                     histo.errors = self._standard_errors_array(data[3])
                     plot = Plot(histo, 'histogram', True)
                     plot.bin_size = bin_sizes[i_plot]
+                    plot._norm = 1#normalization[i_plot]
                     plot.norm = normalization[i_plot]
+                    #return(plot.norm, normalization[i_plot])
                     plots.append(plot)
                     Experiment.plots.append(plot)
                 else:
@@ -392,6 +403,7 @@ class Experiment:
                         plot = Experiment.plots[his]
                         Experiment.plots[his].active = True
                         Experiment.plots[his].bin_size = bin_sizes[i_plot]
+                        Experiment.plots[his]._norm = 1# normalization[i_plot]
                         Experiment.plots[his].norm = normalization[i_plot]
                     except IndexError:
                         print('There is no plot in the registry under the',
@@ -405,8 +417,11 @@ class Experiment:
                 # and to the array to be returned at the end
                 his.active = True
                 his.bin_size = bin_sizes[i_plot]
+                his._norm = 1#normalization[i_plot]
                 his.norm = normalization[i_plot]
                 plots.append(his)
+                #if normalization[i_plot] != 1:
+                #    return(his, normalization[i_plot])
                 if his not in Experiment.plots:
                     Experiment.plots.append(his)
 
@@ -439,10 +454,76 @@ class Experiment:
                 # But we still keep self.ylim None, 
                 # to indicate autoscaling
                 self.plotter.plot1d(plot, Experiment.xlim, ylim)
+        if self.yscale == 'log':
+           self.log()
+           self.dmm()
 
         # Return plots that were added or activated
         return plots
 
+    def _expand_norm_tuple(self, norm, his_list):
+        """Return normalization array of length equal to num_of_args, 
+           with first in range equal to 1 and others 
+           normalized to the range given by norm. 
+           expand integers to whole array, check if list is of proper length
+
+        """
+        normalization = [1]
+        num_of_args = len(his_list)
+
+        if not isinstance(norm, tuple):
+            print("Normalization must be a tuple")
+            print(norm, ' was given')
+            return None
+
+        if num_of_args < 2:
+            print("Hislist must be >1 to use range normalization")
+            print(num_of_args, ' was given')
+            return None
+
+        if len(norm) != 2:
+            print("norm tuple must be length 2")
+            print(norm, ' was given')
+            return None
+
+        if norm[0]>norm[1]:
+            print(norm[0], " is greater than ", norm[1])
+            norm = (norm[1],norm[0])
+            print(norm, ' will be used')
+
+        his = his_list[0]
+        #grab the first plot to normalize to
+        if isinstance(his, int):
+            data = self.hisfile.load_histogram(his)
+            norm_d = data[3][norm[0]:norm[1]].sum()
+        elif isinstance(his, Plot):
+            norm_d = his.histogram.weights[norm[0]:norm[1]].sum()
+
+        for i_plot, his in enumerate(his_list[1:]):
+            if isinstance(his, int):
+                # load histograms from the file
+                if his > 0:
+                    data = self.hisfile.load_histogram(his)
+                    if data[0] != 1:
+                        print('{} is not a 1D histogram'.format(his))
+                        return None
+                    normalization.append(data[3][norm[0]:norm[1]].sum()/norm_d)
+                else:
+                    # plot histograms from registry
+                    # Numbered by negative numbers (-1 being the latest)
+                    # Call show_registers for a list of available plots
+                    try:
+                        plot = Experiment.plots[his]
+                        normalization.append(plot.histogram.weights[norm[0]:norm[1]].sum()/norm_d)
+                    except IndexError:
+                        print('There is no plot in the registry under the',
+                              'number', his, 'use show_registry() to see',
+                              'available plots')
+                        return None
+            elif isinstance(his, Plot):
+                normalization.append(his.histogram.weights[norm[0]:norm[1]].sum()/norm_d)
+
+        return normalization
 
     def _auto_scale_y(self):
         """Find the y limits taking into account all active plots """
@@ -550,6 +631,7 @@ class Experiment:
         """Change y scale to log or z scale to log"""
         if self.mode == 1:
             self.plotter.ylog()
+            self.yscale='log'
         elif self.mode == 2:
             Experiment.logz = True
             self.dd(-1, xc=Experiment.xlim2d, yc=Experiment.ylim2d)
@@ -559,6 +641,7 @@ class Experiment:
         """Change y scale to linear or z scale to linear"""
         if self.mode == 1:
             self.plotter.ylin()
+            self.yscale='lin'
         if self.mode == 2:
             Experiment.logz = False
             self.dd(-1, xc=Experiment.xlim2d, yc=Experiment.ylim2d)
@@ -716,6 +799,7 @@ class Experiment:
         histo.errors = dg
         gate_plot = Plot(histo, 'histogram', True)
         gate_plot.bin_size = bin_size
+        gate_plot._norm = 1
         gate_plot.norm = norm
 
         if plot:
@@ -799,6 +883,7 @@ class Experiment:
         histo.errors = dg
         gate_plot = Plot(histo, 'histogram', True)
         gate_plot.bin_size = bin_size
+        gate_plot._norm = 1
         gate_plot.norm = norm
 
         Experiment.plots.append(gate_plot)

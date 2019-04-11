@@ -30,6 +30,7 @@ class Histogram:
         self.weights = None
         self.errors = None
         self.title = None
+        #self.norm = None
 
 
     def save_to_txt(self, file_name):
@@ -88,7 +89,7 @@ class Histogram:
         histo.x_axis = self.x_axis
         histo.weights = self.weights
         histo.errors = self.errors
-
+        #print('ok')
         if bin_size == 0:
             print('Warning: bin_size 0 overridden,' + 
                     ' using 1 instead')
@@ -113,10 +114,12 @@ class Histogram:
         else:
             raise GeneralError("Normalization must be int," + 
                                " float or 'area' string")
-
-        histo.title = '{}, / {:.2e}'.format(self.title, 
-                                           normalization * bin_size)
+        #print(normalization)
+        #histo.title = '{}, / {:.2e}'.format(self.title, 
+        #                                   normalization * bin_size)
+        histo.title = self.title
         histo.weights = histo.weights / normalization / bin_size
         histo.errors = histo.errors / normalization / bin_size
-        return histo
+        #histo.norm *= normalization
+        return histo, normalization, bin_size
 
