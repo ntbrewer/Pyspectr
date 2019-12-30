@@ -37,6 +37,7 @@ class HisFile:
         self._tmp_files = []
         self.load(file_name)
         self.file_name = file_name
+        self._zon = False
 
 
     def __del__(self):
@@ -107,6 +108,8 @@ class HisFile:
             header = drr_file.read(84)
 
             his_list = []
+            #format indicates little endian (<), 
+            #with content short, short,unsinged int, and 40 char, C types
             for i in range(n_histograms):
                 raw_entry = drr_file.read(128)
                 dimension, half_words_per_ch, offset, title = \
@@ -232,6 +235,96 @@ class HisFile:
         else:
             return [2, x_axis, y_axis, data]
 
+    
+    def zon(self):
+        """
+            Enables zeroing of the histogram.
+        """
+        self._zon = True
+    
+    def zoff(self):
+        """
+            Disables zeroing of the histogram.
+        """
+        self._zon = False
+
+    def zero_histogram(self,his_id):
+        """
+            Finds histogram in his file and sets data to zero
+        """
+        if not self._zon:
+            raise GeneralError('Ability to zero histograms is currently turned off (default), use zon to enable.')
+            return None
+
+        if self.histograms.get(his_id) is None:
+            raise GeneralError("Histogram {} not found".format(his_id))
+
+        offset = self.histograms[his_id]['offset']
+        his_name = '{}{}'.format(self.base_name, '.his')
+        with open(his_name, 'r+b') as his_file:
+            length = 1
+            dim = self.histograms[his_id]['dimension']
+            if dim > 2:
+                raise GeneralError('Histograms with dimensions >2 not supported')
+            for d in range(self.histograms[his_id]['dimension']):
+                length *= self.histograms[his_id]['scaled'][d]
+
+            if self.histograms[his_id]['half_words_per_ch'] == 1:
+                data = array('h')
+                fac = 2
+            elif self.histograms[his_id]['half_words_per_ch'] == 2:
+                data = array('i')
+                fac = 4
+            else:
+                msg = 'half-words per channel histograms are not supported'
+                raise GeneralError('{} {}'.format(
+                                self.histograms[his_id]['half_words_per_ch']),
+                                    msg) 
+
+            his_file.seek(offset * 2)
+            his_file.write(b'\x00'*(length*fac))
+
+    def zero_file(self):
+        """
+            Zero all histogram in his file and sets data to zero
+        """
+        if not self._zon:
+            raise GeneralError('Ability to zero histograms is currently turned off (default), use zon to enable.')
+            return None
+        
+        response = input('Are you sure you want to zero the histogram file? (y/*)')
+
+        if not response == 'y':
+            print('input not \'y\' exactly. ok, will not zero histogram file.')
+            return None
+
+        his_name = '{}{}'.format(self.base_name, '.his')
+
+        with open(his_name, 'r+b') as his_file:
+            for his_id in self.histograms.keys():
+                length = 1
+                dim = self.histograms[his_id]['dimension']
+                offset = self.histograms[his_id]['offset']
+
+                if dim > 2:
+                    raise GeneralError('Histograms with dimensions >2 not supported')
+                for d in range(self.histograms[his_id]['dimension']):
+                    length *= self.histograms[his_id]['scaled'][d]
+
+                if self.histograms[his_id]['half_words_per_ch'] == 1:
+                    data = array('h')
+                    fac = 2
+                elif self.histograms[his_id]['half_words_per_ch'] == 2:
+                    data = array('i')
+                    fac = 4
+                else:
+                    msg = 'half-words per channel histograms are not supported'
+                    raise GeneralError('{} {}'.format(
+                                self.histograms[his_id]['half_words_per_ch']),
+                                    msg) 
+
+                his_file.seek(offset * 2)
+                his_file.write(b'\x00'*(length*fac))
 
 if __name__ == "__main__":
     pass
