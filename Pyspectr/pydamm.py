@@ -98,9 +98,9 @@ class Plot:
 
     def __str__(self):
         """Basic information Informative string"""
-        string = 'Plot: {} bin {} norm {:.2e}'.\
+        string = 'Plot: {} bin {} norm {:.2e} sum {}'.\
                     format(self.histogram.title.strip(), self.bin_size,
-                           self.norm)
+                           self.norm, self.histogram.weights.sum())
         return string
 
 
@@ -108,9 +108,10 @@ class Plot:
         """More verbose string
 
         """
-        string = 'Plot: "{}" bin {} norm {:.2e} active {} mode {}'.\
-                    format(self.histogram.title.strip(), self.bin_size,
-                           self.norm, self.active, self.mode)
+        #string = 'Plot: "{}" bin {} norm {:.2e} active {} mode {} sum {}'.\
+        #            format(self.histogram.title.strip(), self.bin_size,
+        #                   self.norm, self.active, self.mode, self.histogram.weights.sum())
+        string = 'Plot: {} '.format(self.histogram.title.strip())
         return string
 
 
@@ -141,7 +142,8 @@ class Experiment:
     # 2D plot ranges
     xlim2d = None
     ylim2d = None
-    logz = False
+    logz = False #For 2d histograms
+    logy = False #For 1d histograms
 
     # 1 for 1D, 2 for 2D
     _mode = 1
@@ -313,7 +315,7 @@ class Experiment:
 
 
 
-    def d(self, *args, norm=1, bin_size=1, clear=True):
+    def d(self, *args, norm=1, bin_size=1, clear=True, use_log=None):
         """
         Plot 1D histogram. 
         * args: is a list of histograms that may be given as:
@@ -361,6 +363,9 @@ class Experiment:
         if clear:
             for p in Experiment.plots:
                 p.active = False
+
+        if use_log is not None and type(use_log) == bool:
+            self.logy = use_log
 
         # Prepare data for plotting
         for i_plot, his in enumerate(his_list):
@@ -415,7 +420,7 @@ class Experiment:
         for plot in Experiment.plots:
             if plot.active:
                 active_plots += 1
-
+        print(str(self.logy))
         # Here the actual plotting happens
         i_plot = 0
         for plot in Experiment.plots:
@@ -438,7 +443,7 @@ class Experiment:
                 # Note that ylim is autoscaled above if self.ylim is None
                 # But we still keep self.ylim None, 
                 # to indicate autoscaling
-                self.plotter.plot1d(plot, Experiment.xlim, ylim)
+                self.plotter.plot1d(plot, Experiment.xlim, ylim, self.logy)
 
         # Return plots that were added or activated
         return plots
@@ -550,6 +555,7 @@ class Experiment:
         """Change y scale to log or z scale to log"""
         if self.mode == 1:
             self.plotter.ylog()
+            self.logy = True
         elif self.mode == 2:
             Experiment.logz = True
             self.dd(-1, xc=Experiment.xlim2d, yc=Experiment.ylim2d)
@@ -559,6 +565,7 @@ class Experiment:
         """Change y scale to linear or z scale to linear"""
         if self.mode == 1:
             self.plotter.ylin()
+            self.logy = False
         if self.mode == 2:
             Experiment.logz = False
             self.dd(-1, xc=Experiment.xlim2d, yc=Experiment.ylim2d)
@@ -725,7 +732,7 @@ class Experiment:
                 ylim = self._auto_scale_y()
             else:
                 ylim = self.ylim
-            self.plotter.plot1d(gate_plot, Experiment.xlim, ylim)
+            self.plotter.plot1d(gate_plot, Experiment.xlim, ylim, self.logy)
 
         return gate_plot
 
@@ -808,7 +815,7 @@ class Experiment:
                 ylim = self._auto_scale_y()
             else:
                 ylim = self.ylim
-            self.plotter.plot1d(gate_plot, Experiment.xlim, ylim)
+            self.plotter.plot1d(gate_plot, Experiment.xlim, ylim, self.logy)
 
         return gate_plot
 
@@ -1112,7 +1119,7 @@ class Experiment:
         else:
             ylim = Experiment.ylim
 
-        self.plotter.plot1d(plot_peaks, xlim=rx, ylim=ylim)
+        self.plotter.plot1d(plot_peaks, rx, ylim, self.logy)
 
 
 
@@ -1190,8 +1197,8 @@ class Experiment:
         gate_histo.x_axis = xgate.histogram.x_axis
         gate_histo.weights = xgate.histogram.weights - bckg.histogram.weights
         gate_histo.errors = np.sqrt(dyg**2 + dyb**2)
-        gate_histo.title = '{}: gx {} bg {} bin {}'.\
-                format(his, gate[0], gate[1], t_bin)
+        gate_histo.title = '{}: gx {} bg {} bin {} sum {}'.\
+                format(his, gate[0], gate[1], t_bin, gate_histo.weights[gate[0][0],gate[0][1]].sum)
         plot_data = Plot(gate_histo, 'errorbar', True)
 
         t, n, parameters = df.fit(gate_histo.x_axis, gate_histo.weights,

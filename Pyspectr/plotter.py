@@ -40,7 +40,7 @@ class Plotter:
         # Change this variable to another cmap if you need different colors
         self.cmap = cm.RdYlGn_r
         # Some selected color maps, you can toggle with toggle_color_map
-        self.color_maps = [cm.RdYlGn_r, cm.binary, cm.hot, cm.nipy_spectral] #cm.spectral] dvm20180508
+        self.color_maps = [cm.RdYlGn_r, cm.binary, cm.hot, cm.nipy_spectral]
 
         if size == 0:
             pass
@@ -82,12 +82,13 @@ class Plotter:
     def ylog(self):
         """Change y scale to log"""
         plt.yscale('log')
+        plt.ylim(ymin=.1)
 
     def ylin(self):
         """Change y scale to linear"""
         plt.yscale('linear')
 
-    def plot1d(self, plot, xlim=None, ylim=None):
+    def plot1d(self, plot, xlim=None, ylim=None, logy=None):
         """ Plot 1D histogram
             The mode defines the way the data are presented,
             'histogram' is displayed with steps
@@ -99,6 +100,17 @@ class Plotter:
 
         """
         histo = plot.histogram
+
+        if xlim is not None:
+            plt.xlim(xlim)
+            title = histo.title
+            title = title[:title.index('sum')+4]
+            histo.title = title + str(histo.weights[xlim[0]:xlim[1]].sum())
+        if ylim is not None:
+            plt.ylim(ylim)
+        
+        if logy:
+            self.ylog()
 
         if plot.mode == 'histogram':
             plt.plot(histo.x_axis, histo.weights,
@@ -113,15 +125,10 @@ class Plotter:
         else:
             raise GeneralError('Unknown plot mode {}'.format(plot.mode))
 
-        if xlim is not None:
-            plt.xlim(xlim)
-        if ylim is not None:
-            plt.ylim(ylim)
-
         if self.legend:
             plt.legend(loc=0, numpoints=1, fontsize='small')
 
-    def plot1d_4panel(self, plot, ranges):
+    def plot1d_4panel(self, plot, ranges, logy=None):
         """
         Special 1D histogram plot. The plot is broken into 4 panels (stacked verically)
         the ranges variable should be given in a (x0, x1, x2, x3, x4) format, where
@@ -136,6 +143,9 @@ class Plotter:
                     plot.histogram.weights[x0:x1], 
                     ls='steps-mid')
             ax.set_xlim((r, ranges[i + 1]))
+            if logy is not None:
+                ax.set_yscale('log')
+                ax.set_ylim(bottom=0.1)
         ax.set_xlabel('E (keV)')
         plt.tight_layout()
 
