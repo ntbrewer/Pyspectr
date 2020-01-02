@@ -533,6 +533,17 @@ class Experiment:
 
         if self.ylim is None:
             self.plotter.ylim(self._auto_scale_y())
+        legend = []
+        for p in Experiment.plots:
+            if p.active:
+                title = p.histogram.title
+                title = title[:title.index('sum')+4]
+                if Experiment.xlim is not None:
+                    legend.append(title + str(p.histogram.weights[Experiment.xlim[0]:Experiment.xlim[1]].sum()))
+                else: 
+                    legend.append(title + str(p.histogram.weights.sum()))
+        if self.plotter.legend:
+            plt.legend(legend,loc=0, numpoints=1, fontsize='small')
 
 
     def dmm(self, y0=None, y1=None):
@@ -1198,7 +1209,7 @@ class Experiment:
         gate_histo.weights = xgate.histogram.weights - bckg.histogram.weights
         gate_histo.errors = np.sqrt(dyg**2 + dyb**2)
         gate_histo.title = '{}: gx {} bg {} bin {} sum {}'.\
-                format(his, gate[0], gate[1], t_bin, gate_histo.weights[gate[0][0],gate[0][1]].sum)
+                format(his, gate[0], gate[1], t_bin, gate_histo.weights[gate[0][0],gate[0][1]].sum())
         plot_data = Plot(gate_histo, 'errorbar', True)
 
         t, n, parameters = df.fit(gate_histo.x_axis, gate_histo.weights,
