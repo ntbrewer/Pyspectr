@@ -12,7 +12,7 @@ search, input/outputs registry (as in Maxima or Mathematica), etc.  However, it
 is also possible to work with pydamm within the standard python3 shell.
 
 
-Instalation
+Installation
 ===========
 This package requires the following modules:
 * numpy (http://www.numpy.org/)
@@ -48,6 +48,8 @@ Once the required libraries are in place, install the Pyspectr with:
 
 Usage
 =====
+Happy New Year (1/2/2020)! New functions added for histogram adding, histogram file zeroing,
+and some other requested capability for log state persistence and count display. 
 
 pydamm
 ------

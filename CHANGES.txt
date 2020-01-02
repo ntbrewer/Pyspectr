@@ -1,1 +1,2 @@
 v0.1.0, 15.07.2013 -- Inital release
+v0.2.2, 02.01.2020 -- Includes of his zeroing, his adding, and state persistence
