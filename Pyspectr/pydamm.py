@@ -446,7 +446,7 @@ class Experiment:
                 self.plotter.plot1d(plot, Experiment.xlim, ylim, self.logy)
 
         # Return plots that were added or activated
-        return plots
+        return None#plots
 
 
     def _auto_scale_y(self):
@@ -1006,6 +1006,128 @@ class Experiment:
             self.dd(-1, xc=Experiment.xlim2d, yc=ylim)
 
 
+    def add_his(self, *args, fac=1):
+        """
+        Add together 1D histograms. As in Experiment.d,
+        * args: is a list of histograms that may be given as:
+              - positive integer: is interpreted as the histogram id
+                                  from a currently open file
+              - negative integer: is interpreted as the registry number
+                                  (see (show_registers())
+              - Plot object:       see Plot class
+              - string:  in 'x-y' format where x and y are integers 
+                        (note also mandatory quatation marks)
+                        is interpreted as a range of histograms ids
+        fac: is a real number or list of numbers the same length as the number of histograms
+            specified by *args. fac is used to multiply weights of the histograms together. 
+            Use this function carefully, strange numbers in the histogram, 
+            i.e. negative values etc., could give unexpected results. 
+        """
+        his_list = self._expand_d_args(args)
+        
+        if type(fac) == list:
+            if len(fac) != 1 and len(fac) != len(his_list):
+                print('Length of list fac is {}, and not equal to number of specified histograms, {}.'.format(len(fac),len(his_list)))
+                return None
+
+        histo = histogram.Histogram()
+        histo.title = 'Sum of {} histograms'.format(len(his_list))
+        
+        his = his_list[0]
+        if isinstance(his, int):
+            if his > 0:
+                data = self.hisfile.load_histogram(his)
+                if data[0] != 1:
+                    print('{} is not a 1D histogram'.format(his))
+                    return None 
+                histo.x_axis = data[1]
+                bin_size = 1
+                length = len(data[1])
+                if type(fac) == int or type(fac)==float:
+                    histo.weights = data[3]*1.0
+                elif type(fac) == list:
+                    histo.weights = data[3]*fac[0]*1.0
+            else:
+                try:
+                    plot = Experiment.plots[his]
+                    histo.x_axis = plot.histogram.x_axis
+                    bin_size = plot.bin_size
+                    length = len(histo.x_axis)
+                    if type(fac) == int or type(fac)==float:
+                        histo.weights = plot.histogram.weights
+                    elif type(fac) == list:
+                        histo.weights = plot.histogram.weights*fac[0]                  
+                except IndexError:
+                    print('There is no plot in the registry under the',
+                          'number', his, 'use show_registry() to see',
+                          'available plots')
+                    return None  
+        elif isinstance(his, Plot):
+            histo.x_axis = his.histogram.x_axis
+            bin_size = his.bin_size
+            length = len(histo.x_axis)
+            if type(fac) == int or type(fac)==float:
+                histo.weights = his.histogram.weights
+            elif type(fac) == list:
+                histo.weights = his.histogram.weights*fac[0]
+        
+        for i_plot, his in enumerate(his_list[1:]):
+            if isinstance(his, int):
+                # load histograms from the file
+                if his > 0:
+                    data = self.hisfile.load_histogram(his)
+                    if length != len(data[1]):
+                        print('Inconsistent his length at {}'.format(i_plot))
+                        return None
+                    if data[0] != 1:
+                        print('{} is not a 1D histogram'.format(his))
+                        return None
+                    if type(fac) == int or type(fac)==float:
+                        histo.weights += data[3]*fac*1.0
+                    elif type(fac) == list:
+                        histo.weights += data[3]*fac[i_plot]*1.0
+                else:
+                    # load histograms from registry
+                    # Numbered by negative numbers (-1 being the latest)
+                    # Call show_registers for a list of available plots
+                    try:
+                        plot = Experiment.plots[his]
+                        if length != len(plot.histogram.x_axis):
+                            print('Inconsistent his length at {}'.format(i_plot))
+                            return None
+                        if bin_size != plot.bin_size:
+                            print('Inconsistent bin_size length at {}'.format(i_plot))                            
+                            return None
+
+                        if type(fac) == int or type(fac)==float:
+                            histo.weights += plot.histogram.weights*fac
+                        elif type(fac) == list:
+                            histo.weights += plot.histogram.weights*fac[i_plot]                  
+                    except IndexError:
+                        print('There is no plot in the registry under the',
+                              'number', his, 'use show_registry() to see',
+                              'available plots')
+                        return None                    
+            elif isinstance(his, Plot):
+                # If instance of Plot class is given, mark it active and add
+                # to the deque (if not already there)
+                # and to the array to be returned at the end
+                if length != len(his.histogram.x_axis):
+                    print('Inconsistent his length at {}'.format(i_plot))
+                    return None
+                if bin_size != his.bin_size:
+                    print('Inconsistent bin_size length at {}'.format(i_plot))
+                    return None
+
+                if type(fac) == int or type(fac)==float:
+                    histo.weights += his.histogram.weights*fac
+                elif type(fac) == list:
+                    histo.weights += his.histogram.weights*fac[i_plot]
+
+        histo.errors = self._standard_errors_array(histo.weights)
+        plot = Plot(histo, 'histogram', True)
+        Experiment.plots.append(plot)
+        return plot
 
     def clear(self):
         self.plotter.clear()
