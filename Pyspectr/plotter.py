@@ -104,7 +104,10 @@ class Plotter:
         if xlim is not None:
             plt.xlim(xlim)
             title = histo.title
-            title = title[:title.index('sum')+4]
+            try:
+                title = title[:title.index('sum')+4]
+            except ValueError:
+                title += ' sum: '
             histo.title = title + str(histo.weights[xlim[0]:xlim[1]].sum())
         if ylim is not None:
             plt.ylim(ylim)
