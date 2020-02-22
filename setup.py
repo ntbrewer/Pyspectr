@@ -6,7 +6,7 @@ with open("README.txt", "r") as fh:
 
 setuptools.setup(
     name='Pyspectr',
-    version='0.2.2',
+    version='0.2.3',
     author='Nathan Brewer',
     author_email='brewer.nathant@gmail.com',
     packages=setuptools.find_packages(),

@@ -7,7 +7,7 @@ This module handles the HIS/DRR data files.
 
 """
 
-import numpy
+import numpy as np
 import os
 import struct
 import sys
@@ -37,6 +37,7 @@ class HisFile:
         self._tmp_files = []
         self.load(file_name)
         self.file_name = file_name
+        self._zon = False
 
 
     def __del__(self):
@@ -107,6 +108,8 @@ class HisFile:
             header = drr_file.read(84)
 
             his_list = []
+            #format indicates little endian (<), 
+            #with content short, short,unsinged int, and 40 char, C types
             for i in range(n_histograms):
                 raw_entry = drr_file.read(128)
                 dimension, half_words_per_ch, offset, title = \
@@ -218,20 +221,110 @@ class HisFile:
             his_file.seek(offset * 2)
             data.fromfile(his_file, length)
 
-        x_axis = numpy.arange(self.histograms[his_id]['minc'][0] + self._dx,
+        x_axis = np.arange(self.histograms[his_id]['minc'][0] + self._dx,
                             self.histograms[his_id]['maxc'][0] + self._dx + 1.0)
         if self.histograms[his_id]['dimension'] == 2:
-            y_axis = numpy.arange(self.histograms[his_id]['minc'][1] + self._dx,
+            y_axis = np.arange(self.histograms[his_id]['minc'][1] + self._dx,
                             self.histograms[his_id]['maxc'][1] + self._dx + 1.0)
-            data = numpy.reshape(data, (self.histograms[his_id]['scaled'][1],
+            data = np.reshape(data, (self.histograms[his_id]['scaled'][1],
                                         self.histograms[his_id]['scaled'][0]))
-            data = numpy.transpose(data)
+            data = np.transpose(data)
 
         if self.histograms[his_id]['dimension'] == 1:
-            return [1, x_axis, None, numpy.array(data)]
+            return [1, x_axis, None, np.array(data)]
         else:
             return [2, x_axis, y_axis, data]
 
+    
+    def zon(self):
+        """
+            Enables zeroing of the histogram.
+        """
+        self._zon = True
+    
+    def zoff(self):
+        """
+            Disables zeroing of the histogram.
+        """
+        self._zon = False
+
+    def zero_histogram(self,his_id):
+        """
+            Finds histogram in his file and sets data to zero
+        """
+        if not self._zon:
+            raise GeneralError('Ability to zero histograms is currently turned off (default), use zon to enable.')
+            return None
+
+        if self.histograms.get(his_id) is None:
+            raise GeneralError("Histogram {} not found".format(his_id))
+
+        offset = self.histograms[his_id]['offset']
+        his_name = '{}{}'.format(self.base_name, '.his')
+        with open(his_name, 'r+b') as his_file:
+            length = 1
+            dim = self.histograms[his_id]['dimension']
+            if dim > 2:
+                raise GeneralError('Histograms with dimensions >2 not supported')
+            for d in range(self.histograms[his_id]['dimension']):
+                length *= self.histograms[his_id]['scaled'][d]
+
+            if self.histograms[his_id]['half_words_per_ch'] == 1:
+                data = array('h')
+                fac = 2
+            elif self.histograms[his_id]['half_words_per_ch'] == 2:
+                data = array('i')
+                fac = 4
+            else:
+                msg = 'half-words per channel histograms are not supported'
+                raise GeneralError('{} {}'.format(
+                                self.histograms[his_id]['half_words_per_ch']),
+                                    msg) 
+
+            his_file.seek(offset * 2)
+            his_file.write(b'\x00'*(length*fac))
+
+    def zero_file(self):
+        """
+            Zero all histogram in his file and sets data to zero
+        """
+        if not self._zon:
+            raise GeneralError('Ability to zero histograms is currently turned off (default), use zon to enable.')
+            return None
+        
+        response = input('Are you sure you want to zero the histogram file? (y/*)')
+
+        if not response == 'y':
+            print('input not \'y\' exactly. ok, will not zero histogram file.')
+            return None
+
+        his_name = '{}{}'.format(self.base_name, '.his')
+
+        with open(his_name, 'r+b') as his_file:
+            for his_id in self.histograms.keys():
+                length = 1
+                dim = self.histograms[his_id]['dimension']
+                offset = self.histograms[his_id]['offset']
+
+                if dim > 2:
+                    raise GeneralError('Histograms with dimensions >2 not supported')
+                for d in range(self.histograms[his_id]['dimension']):
+                    length *= self.histograms[his_id]['scaled'][d]
+
+                if self.histograms[his_id]['half_words_per_ch'] == 1:
+                    data = array('h')
+                    fac = 2
+                elif self.histograms[his_id]['half_words_per_ch'] == 2:
+                    data = array('i')
+                    fac = 4
+                else:
+                    msg = 'half-words per channel histograms are not supported'
+                    raise GeneralError('{} {}'.format(
+                                self.histograms[his_id]['half_words_per_ch']),
+                                    msg) 
+
+                his_file.seek(offset * 2)
+                his_file.write(b'\x00'*(length*fac))
 
 if __name__ == "__main__":
     pass

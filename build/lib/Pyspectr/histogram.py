@@ -9,7 +9,7 @@ adds also information about display (limits, binning, ...).
 
 """
 
-import numpy
+import numpy as np
 from Pyspectr.exceptions import GeneralError as GeneralError
 
 
@@ -34,7 +34,7 @@ class Histogram:
 
     def save_to_txt(self, file_name):
         """Save the histogram to ascii text file"""
-        #numpy.savetxt(file_name, data.transpose(),
+        #np.savetxt(file_name, data.transpose(),
         #              fmt=['%8.2f', '%8.2f', '%8.2f']
         pass
 
@@ -61,12 +61,12 @@ class Histogram:
             x_axis = self.x_axis[:]
         weights = weights.reshape((-1, bin_size)).sum(axis=1)
         x_axis = x_axis.reshape((-1, bin_size)).mean(axis=1)
-        errors = numpy.sqrt(abs(weights))
-
+        errors = np.sqrt(abs(weights))
+        #limit = Experiment.xlim()
         histo = Histogram(dim=self.dim)
         histo.x_axis = x_axis
         histo.weights = weights
-        histo.title = '{}, bin {}'.format(self.title, bin_size)
+        histo.title = '{}, bin {}, sum {}'.format(self.title, bin_size, weights.sum())
         histo.errors = errors
         return histo
 
@@ -113,9 +113,9 @@ class Histogram:
         else:
             raise GeneralError("Normalization must be int," + 
                                " float or 'area' string")
-
-        histo.title = '{}, / {:.2e}'.format(self.title, 
-                                           normalization * bin_size)
+        #limit = Experiment.xlim()
+        histo.title = '{}, / {:.2e} sum {}'.format(self.title, 
+                                           normalization * bin_size,histo.weights.sum())
         histo.weights = histo.weights / normalization / bin_size
         histo.errors = histo.errors / normalization / bin_size
         return histo

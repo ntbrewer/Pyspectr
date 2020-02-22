@@ -1221,7 +1221,7 @@ class Experiment:
         # may be overlaid on in. However, the plot_data is appended 
         # to the registry after the fit functions so it is on top of the
         # registry.
-        self.plotter.plot1d(plot_data, xlim=rx)
+        self.plotter.plot1d(plot_data, xlim=None)
 
         fit_result = PF.fit(x_axis[rx[0]:rx[1]], weights[rx[0]:rx[1]],
                             dweights[rx[0]:rx[1]])

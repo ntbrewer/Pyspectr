@@ -10,7 +10,7 @@ DAMM programm.
 """
 
 import math
-import numpy
+import numpy as np
 import sys
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
@@ -98,9 +98,9 @@ class Plot:
 
     def __str__(self):
         """Basic information Informative string"""
-        string = 'Plot: {} bin {} norm {:.2e}'.\
+        string = 'Plot: {} bin {} norm {:.2e} sum {}'.\
                     format(self.histogram.title.strip(), self.bin_size,
-                           self.norm)
+                           self.norm, self.histogram.weights.sum())
         return string
 
 
@@ -108,9 +108,10 @@ class Plot:
         """More verbose string
 
         """
-        string = 'Plot: "{}" bin {} norm {:.2e} active {} mode {}'.\
-                    format(self.histogram.title.strip(), self.bin_size,
-                           self.norm, self.active, self.mode)
+        #string = 'Plot: "{}" bin {} norm {:.2e} active {} mode {} sum {}'.\
+        #            format(self.histogram.title.strip(), self.bin_size,
+        #                   self.norm, self.active, self.mode, self.histogram.weights.sum())
+        string = 'Plot: {} '.format(self.histogram.title.strip())
         return string
 
 
@@ -141,7 +142,8 @@ class Experiment:
     # 2D plot ranges
     xlim2d = None
     ylim2d = None
-    logz = False
+    logz = False #For 2d histograms
+    logy = False #For 1d histograms
 
     # 1 for 1D, 2 for 2D
     _mode = 1
@@ -313,7 +315,7 @@ class Experiment:
 
 
 
-    def d(self, *args, norm=1, bin_size=1, clear=True):
+    def d(self, *args, norm=1, bin_size=1, clear=True, use_log=None):
         """
         Plot 1D histogram. 
         * args: is a list of histograms that may be given as:
@@ -361,6 +363,9 @@ class Experiment:
         if clear:
             for p in Experiment.plots:
                 p.active = False
+
+        if use_log is not None and type(use_log) == bool:
+            self.logy = use_log
 
         # Prepare data for plotting
         for i_plot, his in enumerate(his_list):
@@ -415,7 +420,7 @@ class Experiment:
         for plot in Experiment.plots:
             if plot.active:
                 active_plots += 1
-
+        print(str(self.logy))
         # Here the actual plotting happens
         i_plot = 0
         for plot in Experiment.plots:
@@ -438,10 +443,10 @@ class Experiment:
                 # Note that ylim is autoscaled above if self.ylim is None
                 # But we still keep self.ylim None, 
                 # to indicate autoscaling
-                self.plotter.plot1d(plot, Experiment.xlim, ylim)
+                self.plotter.plot1d(plot, Experiment.xlim, ylim, self.logy)
 
         # Return plots that were added or activated
-        return plots
+        return None#plots
 
 
     def _auto_scale_y(self):
@@ -528,6 +533,17 @@ class Experiment:
 
         if self.ylim is None:
             self.plotter.ylim(self._auto_scale_y())
+        legend = []
+        for p in Experiment.plots:
+            if p.active:
+                title = p.histogram.title
+                title = title[:title.index('sum')+4]
+                if Experiment.xlim is not None:
+                    legend.append(title + str(p.histogram.weights[Experiment.xlim[0]:Experiment.xlim[1]].sum()))
+                else: 
+                    legend.append(title + str(p.histogram.weights.sum()))
+        if self.plotter.legend:
+            plt.legend(legend,loc=0, numpoints=1, fontsize='small')
 
 
     def dmm(self, y0=None, y1=None):
@@ -550,6 +566,7 @@ class Experiment:
         """Change y scale to log or z scale to log"""
         if self.mode == 1:
             self.plotter.ylog()
+            self.logy = True
         elif self.mode == 2:
             Experiment.logz = True
             self.dd(-1, xc=Experiment.xlim2d, yc=Experiment.ylim2d)
@@ -559,6 +576,7 @@ class Experiment:
         """Change y scale to linear or z scale to linear"""
         if self.mode == 1:
             self.plotter.ylin()
+            self.logy = False
         if self.mode == 2:
             Experiment.logz = False
             self.dd(-1, xc=Experiment.xlim2d, yc=Experiment.ylim2d)
@@ -613,8 +631,8 @@ class Experiment:
            with a twist: if n_i = 0, the uncertainity is 1 (not 0)
 
         """
-        errors = numpy.zeros(data.shape)
-        for index, d in numpy.ndenumerate(data):
+        errors = np.zeros(data.shape)
+        for index, d in np.ndenumerate(data):
             if d == 0:
                 errors[index] = 1
             else:
@@ -629,8 +647,8 @@ class Experiment:
         """
         if error1.shape != error2.shape:
             raise GeneralError('Shape of array mismatches')
-        errors = numpy.zeros(error1.shape)
-        for index, d in numpy.ndenumerate(error1):
+        errors = np.zeros(error1.shape)
+        for index, d in np.ndenumerate(error1):
             errors[index] = math.sqrt(error1[index]**2 + error2[index]**2)
         return errors
 
@@ -725,7 +743,7 @@ class Experiment:
                 ylim = self._auto_scale_y()
             else:
                 ylim = self.ylim
-            self.plotter.plot1d(gate_plot, Experiment.xlim, ylim)
+            self.plotter.plot1d(gate_plot, Experiment.xlim, ylim, self.logy)
 
         return gate_plot
 
@@ -808,7 +826,7 @@ class Experiment:
                 ylim = self._auto_scale_y()
             else:
                 ylim = self.ylim
-            self.plotter.plot1d(gate_plot, Experiment.xlim, ylim)
+            self.plotter.plot1d(gate_plot, Experiment.xlim, ylim, self.logy)
 
         return gate_plot
 
@@ -988,6 +1006,128 @@ class Experiment:
             self.dd(-1, xc=Experiment.xlim2d, yc=ylim)
 
 
+    def add_his(self, *args, fac=1):
+        """
+        Add together 1D histograms. As in Experiment.d,
+        * args: is a list of histograms that may be given as:
+              - positive integer: is interpreted as the histogram id
+                                  from a currently open file
+              - negative integer: is interpreted as the registry number
+                                  (see (show_registers())
+              - Plot object:       see Plot class
+              - string:  in 'x-y' format where x and y are integers 
+                        (note also mandatory quatation marks)
+                        is interpreted as a range of histograms ids
+        fac: is a real number or list of numbers the same length as the number of histograms
+            specified by *args. fac is used to multiply weights of the histograms together. 
+            Use this function carefully, strange numbers in the histogram, 
+            i.e. negative values etc., could give unexpected results. 
+        """
+        his_list = self._expand_d_args(args)
+        
+        if type(fac) == list:
+            if len(fac) != 1 and len(fac) != len(his_list):
+                print('Length of list fac is {}, and not equal to number of specified histograms, {}.'.format(len(fac),len(his_list)))
+                return None
+
+        histo = histogram.Histogram()
+        histo.title = 'Sum of {} histograms'.format(len(his_list))
+        
+        his = his_list[0]
+        if isinstance(his, int):
+            if his > 0:
+                data = self.hisfile.load_histogram(his)
+                if data[0] != 1:
+                    print('{} is not a 1D histogram'.format(his))
+                    return None 
+                histo.x_axis = data[1]
+                bin_size = 1
+                length = len(data[1])
+                if type(fac) == int or type(fac)==float:
+                    histo.weights = data[3]*1.0
+                elif type(fac) == list:
+                    histo.weights = data[3]*fac[0]*1.0
+            else:
+                try:
+                    plot = Experiment.plots[his]
+                    histo.x_axis = plot.histogram.x_axis
+                    bin_size = plot.bin_size
+                    length = len(histo.x_axis)
+                    if type(fac) == int or type(fac)==float:
+                        histo.weights = plot.histogram.weights
+                    elif type(fac) == list:
+                        histo.weights = plot.histogram.weights*fac[0]                  
+                except IndexError:
+                    print('There is no plot in the registry under the',
+                          'number', his, 'use show_registry() to see',
+                          'available plots')
+                    return None  
+        elif isinstance(his, Plot):
+            histo.x_axis = his.histogram.x_axis
+            bin_size = his.bin_size
+            length = len(histo.x_axis)
+            if type(fac) == int or type(fac)==float:
+                histo.weights = his.histogram.weights
+            elif type(fac) == list:
+                histo.weights = his.histogram.weights*fac[0]
+        
+        for i_plot, his in enumerate(his_list[1:]):
+            if isinstance(his, int):
+                # load histograms from the file
+                if his > 0:
+                    data = self.hisfile.load_histogram(his)
+                    if length != len(data[1]):
+                        print('Inconsistent his length at {}'.format(i_plot))
+                        return None
+                    if data[0] != 1:
+                        print('{} is not a 1D histogram'.format(his))
+                        return None
+                    if type(fac) == int or type(fac)==float:
+                        histo.weights += data[3]*fac*1.0
+                    elif type(fac) == list:
+                        histo.weights += data[3]*fac[i_plot]*1.0
+                else:
+                    # load histograms from registry
+                    # Numbered by negative numbers (-1 being the latest)
+                    # Call show_registers for a list of available plots
+                    try:
+                        plot = Experiment.plots[his]
+                        if length != len(plot.histogram.x_axis):
+                            print('Inconsistent his length at {}'.format(i_plot))
+                            return None
+                        if bin_size != plot.bin_size:
+                            print('Inconsistent bin_size length at {}'.format(i_plot))                            
+                            return None
+
+                        if type(fac) == int or type(fac)==float:
+                            histo.weights += plot.histogram.weights*fac
+                        elif type(fac) == list:
+                            histo.weights += plot.histogram.weights*fac[i_plot]                  
+                    except IndexError:
+                        print('There is no plot in the registry under the',
+                              'number', his, 'use show_registry() to see',
+                              'available plots')
+                        return None                    
+            elif isinstance(his, Plot):
+                # If instance of Plot class is given, mark it active and add
+                # to the deque (if not already there)
+                # and to the array to be returned at the end
+                if length != len(his.histogram.x_axis):
+                    print('Inconsistent his length at {}'.format(i_plot))
+                    return None
+                if bin_size != his.bin_size:
+                    print('Inconsistent bin_size length at {}'.format(i_plot))
+                    return None
+
+                if type(fac) == int or type(fac)==float:
+                    histo.weights += his.histogram.weights*fac
+                elif type(fac) == list:
+                    histo.weights += his.histogram.weights*fac[i_plot]
+
+        histo.errors = self._standard_errors_array(histo.weights)
+        plot = Plot(histo, 'histogram', True)
+        Experiment.plots.append(plot)
+        return plot
 
     def clear(self):
         self.plotter.clear()
@@ -1081,7 +1221,7 @@ class Experiment:
         # may be overlaid on in. However, the plot_data is appended 
         # to the registry after the fit functions so it is on top of the
         # registry.
-        self.plotter.plot1d(plot_data, xlim=rx)
+        self.plotter.plot1d(plot_data, xlim=None)
 
         fit_result = PF.fit(x_axis[rx[0]:rx[1]], weights[rx[0]:rx[1]],
                             dweights[rx[0]:rx[1]])
@@ -1112,7 +1252,7 @@ class Experiment:
         else:
             ylim = Experiment.ylim
 
-        self.plotter.plot1d(plot_peaks, xlim=rx, ylim=ylim)
+        self.plotter.plot1d(plot_peaks, rx, ylim, self.logy)
 
 
 
@@ -1189,9 +1329,9 @@ class Experiment:
         gate_histo = histogram.Histogram()
         gate_histo.x_axis = xgate.histogram.x_axis
         gate_histo.weights = xgate.histogram.weights - bckg.histogram.weights
-        gate_histo.errors = numpy.sqrt(dyg**2 + dyb**2)
-        gate_histo.title = '{}: gx {} bg {} bin {}'.\
-                format(his, gate[0], gate[1], t_bin)
+        gate_histo.errors = np.sqrt(dyg**2 + dyb**2)
+        gate_histo.title = '{}: gx {} bg {} bin {} sum {}'.\
+                format(his, gate[0], gate[1], t_bin, gate_histo.weights[gate[0][0],gate[0][1]].sum())
         plot_data = Plot(gate_histo, 'errorbar', True)
 
         t, n, parameters = df.fit(gate_histo.x_axis, gate_histo.weights,
@@ -1293,7 +1433,149 @@ class Experiment:
         else:
            if y1 >= args.histogram.y_axis[-1]:
               y1 = args.histogram.y_axis[-1]
-        return ((x0,x1),(y0,y1))      
+        return ((x0,x1),(y0,y1))     
+
+    def trace_explorer(self,his,start=0,finish=None):
+        """
+        Adds the ability to examine a 2D trace histogram or range of 1D histograms 
+        and use sliders to visualize the effect of a given trapezoidal filter on the traces.
+        This is most helpful when setting up a new detector or signal type. 
+        """
+
+        import matplotlib.patches as mpt
+        from matplotlib.widgets import Slider, Button, RadioButtons
+
+        fig = plt.figure()
+
+        def trap_filter(times,res,L,G):
+            """
+            Returns the trapezoidal filtered version of the input vector, res according to 
+            L (length) and G (gap) of the resultant trapezoid.
+            """
+            retvec = np.zeros(len(times))
+            zidx = times.searchsorted(0)
+            for i in range( zidx,len(times) ):
+              retvec[i]=(res[i-L+1:i]-res[i-2*L-G+1:i-L-G]).sum()
+            return(retvec)
+
+        def tau_adjust(pulse,tau):
+            """
+            Returns the Tau/Pole-Zero corrected version of the input vector, pulse according to tau.
+            """
+            from copy import deepcopy as cp
+
+            bls = cp(pulse)
+            retvec = cp(pulse)
+            bls -= pulse[:100].mean()
+            for t in range(3,len(pulse)):
+                pz = bls[:t-1].sum()
+                retvec[t] += bls[t] + pz/tau 
+            return(retvec)
+
+        def zero_crossing(trap):
+            """
+            Returns the CFD version of the input vector, trap.
+            """
+            from copy import deepcopy as cp
+
+            delay = cp(trap)
+            td = 20 #time delay 
+            cf = .8 #constant fraction
+            delay[:-td] += -cf*trap[td:] 
+            return(delay)
+
+        def update_te(val):
+            slen.val = int(slen.val)
+            length = slen.val
+            slen.valtext.set_text(length)
+            sgap.val = int(sgap.val)
+            gap = sgap.val
+            sgap.valtext.set_text(gap)
+            sid.val = int(sid.val)
+            trace_id = sid.val
+            sid.valtext.set_text(trace_id)
+            tau = 10**stau.val
+            stau.valtext.set_text(tau)
+            
+            pulse[pulse_len:] =weights[:,trace_id][:pulse_len]
+            pulse[:pulse_len] =weights[:,trace_id][2]
+            pz = tau_adjust(pulse, tau)
+            ff = trap_filter(t,pz,length,gap)
+            zc = zero_crossing(ff)
+            l.set_ydata( pulse )
+            l2.set_ydata( pz )
+            l3.set_ydata( ff )
+            l4.set_ydata( zc )
+            ax1.set_ylim(pulse.min()-margin,pulse.max()+margin)
+            ax2.set_ylim(pz.min()-margin,pz.max()+margin)
+            ax3.set_ylim(ff.min()-margin,ff.max()+margin)
+            ax4.set_ylim(zc.min()-margin,zc.max()+margin)
+            fig.canvas.draw_idle()
+    
+        #starting positions for sliders
+        l0=100
+        g0=200
+        tau=1
+        
+        histo = self.hisfile.load_histogram(his)
+        weights = histo[3]
+        dim = histo[0]
+
+        if finish==None and dim == 2:
+            finish = weights[10].nonzero()[0][-1]
+        elif finish==None:
+            finish = start + 1 
+
+        if dim == 2:
+            pulse_histo = weights[:,start]
+        else:
+            pulse_histo = weights 
+        pulse_len = pulse_histo.nonzero()[0][-1]+1
+
+        pulse = np.zeros(2*pulse_len)
+        pulse[pulse_len:] += pulse_histo[:pulse_len]
+        pulse[:pulse_len] += pulse_histo[2]
+        t = np.arange(-pulse_len,pulse_len,1)  
+
+        ax1 = plt.subplot(3,2,1)
+        ax2 = plt.subplot(3,2,2,sharex=ax1)
+        ax3 = plt.subplot(3,2,3,sharex=ax1)
+        ax4 = plt.subplot(3,2,4,sharex=ax1)
+        margin = 100
+    
+        pz = tau_adjust(pulse,tau)
+        ff = trap_filter(t,pz,l0,g0)
+        zc = zero_crossing(ff)
+    
+        l,= ax1.plot(t,pulse,lw=2,color='red')
+        ax1.legend(['Input Pulse'])
+        l2,= ax2.plot(t,pz,lw=2,color='k')
+        ax2.legend(['Pole-zero/Tau Corrected'])
+        l3,= ax3.plot(t,ff,lw=2,color='blue')
+        ax3.legend(['Trapezoidal Filter Output'])
+        l4,= ax4.plot(t,zc,lw=2,color='green')
+        ax4.legend(['CFD Output'])
+    
+        ax2.set_xlim(0,pulse_len)
+        ax1.set_ylim(pulse.min()-margin,pulse.max()+margin)
+        ax2.set_ylim(pz.min()-margin*10,pz.max()+margin*10)
+        ax3.set_ylim(ff.min()-margin*10,ff.max()+margin*10)
+        ax4.set_ylim(zc.min()-margin*10,zc.max()+margin*10)
+    
+        axlen = plt.axes([0.15,0.17, 0.65, 0.03])
+        axgap = plt.axes([0.15,0.21, 0.65, 0.03])
+        axid = plt.axes([0.15,0.13, 0.65, 0.03])
+        axtau = plt.axes([0.15,0.09, 0.65, 0.03])
+        slen = Slider(axlen, 'Length', 1, 1000.0, valinit=l0)
+        sgap = Slider(axgap, 'Gap', 1, 1000.0, valinit=g0)
+        sid = Slider(axid, 'Trace id', start, finish, valinit=start)
+        stau = Slider(axtau, 'Tau', -1, 4, valinit=tau)
+
+
+        slen.on_changed(update_te)
+        sgap.on_changed(update_te)
+        sid.on_changed(update_te)
+        stau.on_changed(update_te)
 
 if __name__ == "__main__":
     pass
