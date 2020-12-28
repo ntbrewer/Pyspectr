@@ -25,7 +25,6 @@ from Pyspectr.exceptions import GeneralError as GeneralError
 from Pyspectr.decay_fitter import DecayFitter as DecayFitter
 from Pyspectr.peak_fitter import PeakFitter as PeakFitter
 
-
 class Plot:
     """
     The Plot class holds a set of data and parameters that are needed to
@@ -1143,7 +1142,7 @@ class Experiment:
                
             
 
-    def fit_peaks(self, his=None, rx=None, clear=True):
+    def fit_peaks(self, his=None, rx=None, clear=True,model='linear',sr=None):
         """
         Fit gaussian peaks to 1D plot. If his is not given the
         current plot is used. If rx is not given, the current range is used
@@ -1170,8 +1169,9 @@ class Experiment:
             if rx[0] <= p.get('E') <= rx[1]:
                 peaks.append(p)
 
-        PF = PeakFitter(peaks, 'linear', '')
-
+        PF = PeakFitter(peaks, model, '')
+        if sr is not None:
+            PF.restrict_width(sr[0],sr[1])
 
         if his is not None:
             if hasattr(his,'histogram'):
@@ -1391,7 +1391,7 @@ class Experiment:
                 ax.set_xlim([args[n].histogram.weights.nonzero()[0][0]-2,args[n].histogram.weights.nonzero()[0][-1]+10])
                 ax.set_ylim([0,args[n].histogram.weights.max()*1.66])
                 if args[n].histogram.dim==1:                 
-                   ax.plot(args[n].histogram.weights,ls='steps-mid',label=args[n].histogram.title)
+                   ax.plot(args[n].histogram.weights,drawstyle='steps-mid',label=args[n].histogram.title)
                    ax.legend()
                 else:
                    self.plotter.plot2d(args[n])

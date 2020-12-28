@@ -117,7 +117,7 @@ class Plotter:
 
         if plot.mode == 'histogram':
             plt.plot(histo.x_axis, histo.weights,
-                     ls='steps-mid', label=histo.title)
+                     drawstyle='steps-mid', label=histo.title)
         elif plot.mode == 'function':
             plt.plot(histo.x_axis, histo.weights,
                      ls='-', label=histo.title)
@@ -144,7 +144,7 @@ class Plotter:
             ax = plt.subplot(4, 1, i + 1)
             ax.plot(plot.histogram.x_axis[x0:x1], 
                     plot.histogram.weights[x0:x1], 
-                    ls='steps-mid')
+                    drawstyle='steps-mid')
             ax.set_xlim((r, ranges[i + 1]))
             if logy is not None:
                 ax.set_yscale('log')
